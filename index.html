@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>极限躲避 - 看你能活多久！</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+        touch-action: none;
+      }
+
+      #gameContainer {
+        position: relative;
+        max-width: 500px;
+        width: 100%;
+        height: 100vh;
+        background: linear-gradient(180deg, #5a67d8 0%, #7c3aed 100%);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      #gameCanvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: none;
+      }
+
+      #startScreen,
+      #gameOverScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        z-index: 10;
+        padding: 20px;
+      }
+
+      #startScreen h1,
+      #gameOverScreen h1 {
+        font-size: 48px;
+        margin-bottom: 20px;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        animation: glow 2s ease-in-out infinite;
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        50% {
+          text-shadow: 0 0 40px rgba(255, 255, 255, 0.8);
+        }
+      }
+
+      .subtitle {
+        font-size: 20px;
+        margin-bottom: 30px;
+        opacity: 0.9;
+      }
+
+      .startBtn,
+      .restartBtn,
+      .viewRankBtn {
+        padding: 15px 50px;
+        font-size: 24px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
+        transition: all 0.3s;
+        margin: 10px;
+        font-weight: bold;
+      }
+
+      .startBtn:active,
+      .restartBtn:active,
+      .viewRankBtn:active {
+        transform: scale(0.95);
+      }
+
+      .viewRankBtn {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+      }
+
+      #scoreDisplay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: white;
+        font-size: 18px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        z-index: 5;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 10px 20px;
+        border-radius: 20px;
+      }
+
+      #timeDisplay {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-size: 18px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        z-index: 5;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 10px 20px;
+        border-radius: 20px;
+      }
+
+      .finalScore {
+        font-size: 36px;
+        margin: 20px 0;
+        color: #fbbf24;
+      }
+
+      .instructions {
+        font-size: 16px;
+        opacity: 0.8;
+        margin: 20px 0;
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      #rankList {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        color: white;
+        z-index: 15;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      #rankList h2 {
+        text-align: center;
+        font-size: 32px;
+        margin-bottom: 30px;
+        color: #fbbf24;
+      }
+
+      .rankItem {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 20px;
+        margin: 10px 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        font-size: 18px;
+      }
+
+      .rankItem.top3 {
+        background: linear-gradient(
+          135deg,
+          rgba(251, 191, 36, 0.3) 0%,
+          rgba(245, 158, 11, 0.3) 100%
+        );
+      }
+
+      .closeRank {
+        text-align: center;
+        margin-top: 30px;
+      }
+
+      .emoji {
+        font-size: 60px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gameContainer">
+      <canvas id="gameCanvas"></canvas>
+
+      <div id="scoreDisplay">分数: <span id="score">0</span></div>
+      <div id="timeDisplay">存活: <span id="time">0.00</span>秒</div>
+
+      <div id="startScreen">
+        <div class="emoji">🎮</div>
+        <h1>极限躲避</h1>
+        <div class="subtitle">看你能活多久！</div>
+        <div class="instructions">
+          📱 手指触碰屏幕任意位置控制角色<br />
+          ⚠️ 躲避从四面八方冲来的敌人<br />
+          ⏱️ 坚持越久分数越高<br />
+          🏆 挑战排行榜第一名！
+        </div>
+        <button class="startBtn" onclick="startGame()">开始游戏</button>
+        <button class="viewRankBtn" onclick="showRankList()">查看排行榜</button>
+      </div>
+
+      <div id="gameOverScreen" style="display: none">
+        <div class="emoji">💀</div>
+        <h1>游戏结束</h1>
+        <div class="finalScore">
+          存活: <span id="finalTime">0</span>秒<br />
+          得分: <span id="finalScore">0</span>
+        </div>
+        <div class="subtitle" id="rankMessage"></div>
+        <button class="restartBtn" onclick="restartGame()">再来一次</button>
+        <button class="viewRankBtn" onclick="showRankList()">查看排行榜</button>
+      </div>
+
+      <div id="rankList">
+        <h2>🏆 排行榜</h2>
+        <div id="rankContent"></div>
+        <div class="closeRank">
+          <button class="viewRankBtn" onclick="hideRankList()">返回</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
