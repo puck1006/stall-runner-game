@@ -274,8 +274,9 @@
         const qs = new URLSearchParams(location.search);
         const SPEED_K = Math.max(0.5, Math.min(3.0,
             Number(qs.get('speed')) || Number(localStorage.getItem('escape_speed_k')||1) || 1));
-        const SPEED_SCREENS = Math.max(0.6, Math.min(3.0,
-            Number(qs.get('spw')) || Number(localStorage.getItem('escape_spw')||1.3) || 1.3));
+        // 每秒跨越“最短边”的屏数（默认 2.2 屏/秒，确保任何设备手感一致且足够快）
+        const SPEED_SCREENS = Math.max(0.6, Math.min(4.0,
+            Number(qs.get('spw')) || Number(localStorage.getItem('escape_spw')||2.2) || 2.2));
         const $ = (id)=>document.getElementById(id);
         const homeOverlay = $('homeOverlay');
         const rankOverlay = $('rankOverlay');
@@ -405,9 +406,10 @@
                 // 计算朝向目标的速度向量（px/s）
                 const angle = Math.atan2(targetY - this.y, targetX - this.x);
 
-                // 随机速度（px/s），随屏幕尺寸缩放
-                const base = 220 * viewport.scale;
-                const speed = base + Math.random() * (220 * viewport.scale);
+                // 敌人速度（px/s）：按屏幕最短边比例，独立于刷新率/分辨率
+                const minDim = Math.max(200, Math.min(viewport.w, viewport.h));
+                const base = 0.9 * minDim;   // 0.9 屏/秒
+                const speed = base + Math.random() * (0.6 * minDim); // 0.9–1.5 屏/秒
 
                 this.velX = Math.cos(angle) * speed;
                 this.velY = Math.sin(angle) * speed;
