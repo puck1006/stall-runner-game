@@ -283,6 +283,7 @@
 
         // 视口/缩放参数
         const viewport = { w: 0, h: 0, dpr, scale: 1 };
+        let stars = []; // 提前声明，避免 setupStars 在首次 resize 时访问未初始化变量
         function resizeCanvas() {
             const rect = document.getElementById('gameContainer');
             const w = rect.clientWidth;
@@ -296,7 +297,8 @@
 
             // 根据屏幕调整玩家与难度参数
             const r = Math.max(12, Math.min(22, Math.round(18 * viewport.scale)));
-            const sp = Math.max(4, Math.min(10, 7 * viewport.scale));
+            // 速度单位改为 px/s，随屏幕缩放
+            const sp = Math.max(180, Math.min(420, 300 * viewport.scale));
             if (player) { player.radius = r; player.baseSpeed = sp; }
 
             // 重新布置星空
@@ -393,31 +395,31 @@
                 const targetX = player.x + (Math.random() - 0.5) * jitter;
                 const targetY = player.y + (Math.random() - 0.5) * jitter;
                 
-                // 计算朝向目标的速度向量
+                // 计算朝向目标的速度向量（px/s）
                 const angle = Math.atan2(targetY - this.y, targetX - this.x);
-                
-                // 随机速度，随屏幕尺寸与时间渐增
-                const base = 3.2 * viewport.scale;
-                const speed = base + Math.random() * (4.5 * viewport.scale);
-                
+
+                // 随机速度（px/s），随屏幕尺寸缩放
+                const base = 220 * viewport.scale;
+                const speed = base + Math.random() * (220 * viewport.scale);
+
                 this.velX = Math.cos(angle) * speed;
                 this.velY = Math.sin(angle) * speed;
-                
+
                 // 随机大小（随屏幕缩放）
                 this.radius = Math.max(6, Math.min(18, 10 * viewport.scale + Math.random() * 8));
-                
+
                 // 随机颜色
                 const colors = ['#ff4757', '#ff6348', '#ff7f50', '#ffa502', '#ff6b81'];
                 this.color = colors[Math.floor(Math.random() * colors.length)];
-                
+
                 this.rotation = 0;
-                this.rotationSpeed = (Math.random() - 0.5) * 0.2;
+                this.rotationSpeed = (Math.random() - 0.5) * 1.0; // 弧度/秒
             }
-            
-            update() {
-                this.x += this.velX;
-                this.y += this.velY;
-                this.rotation += this.rotationSpeed;
+
+            update(dt) {
+                this.x += this.velX * dt;
+                this.y += this.velY * dt;
+                this.rotation += this.rotationSpeed * dt;
                 
                 // 移出屏幕很远就删除
                 return !(this.x < -100 || this.x > viewport.w + 100 || 
@@ -467,20 +469,21 @@
             constructor(x, y, color) {
                 this.x = x;
                 this.y = y;
-                this.velX = (Math.random() - 0.5) * 8;
-                this.velY = (Math.random() - 0.5) * 8;
+                // 粒子速度（px/s）
+                this.velX = (Math.random() - 0.5) * 240 * viewport.scale;
+                this.velY = (Math.random() - 0.5) * 240 * viewport.scale;
                 this.radius = Math.random() * 3 + 1;
                 this.color = color;
                 this.life = 1;
-                this.decay = Math.random() * 0.03 + 0.02;
+                this.decay = 1.2 + Math.random(); // 每秒衰减量
             }
             
-            update() {
-                this.x += this.velX;
-                this.y += this.velY;
-                this.velX *= 0.98;
-                this.velY *= 0.98;
-                this.life -= this.decay;
+            update(dt) {
+                this.x += this.velX * dt;
+                this.y += this.velY * dt;
+                this.velX *= Math.pow(0.98, dt * 60);
+                this.velY *= Math.pow(0.98, dt * 60);
+                this.life -= this.decay * dt;
                 return this.life > 0;
             }
             
@@ -518,7 +521,7 @@
         }
         
         // 更新玩家
-        function updatePlayer() {
+        function updatePlayer(dt) {
             // 虚拟摇杆优先
             if (control.active) {
                 const speed = player.baseSpeed * (0.4 + 0.6 * control.strength); // 半推也有速度
@@ -534,7 +537,7 @@
                 if (player.velX !== 0 && player.velY !== 0) { player.velX *= 0.707; player.velY *= 0.707; }
             }
 
-            player.x += player.velX; player.y += player.velY;
+            player.x += player.velX * dt; player.y += player.velY * dt;
             
             // 边界限制
             player.x = Math.max(player.radius, Math.min(viewport.w - player.radius, player.x));
@@ -630,7 +633,6 @@
         }
         
         // 绘制星空背景
-        let stars = [];
         function setupStars(){
             const count = Math.round(90 * viewport.scale + 40); // 随屏幕缩放
             stars = [];
@@ -644,7 +646,7 @@
             }
         }
         
-        function drawBackground() {
+        function drawBackground(dt) {
             ctx.fillStyle = '#0f0f1e';
             ctx.fillRect(0, 0, viewport.w, viewport.h);
             
@@ -659,7 +661,7 @@
                 ctx.restore();
                 
                 // 闪烁效果
-                star.alpha += (Math.random() - 0.5) * 0.1;
+                star.alpha += (Math.random() - 0.5) * 0.1 * dt * 60;
                 star.alpha = Math.max(0.2, Math.min(1, star.alpha));
             });
         }
@@ -669,15 +671,22 @@
         let spawnInterval = 800; // 初始生成间隔
         let hiddenAt = 0; // 页面隐藏时刻
         
-        function gameLoop() {
+        let prevTs = null;
+        function gameLoop(ts) {
             if (!gameState.running) return;
+            if (typeof ts !== 'number') ts = performance.now();
+            if (prevTs == null) prevTs = ts;
+            let dt = (ts - prevTs) / 1000;
+            prevTs = ts;
+            // clamp，避免切后台或掉帧导致大步跳
+            dt = Math.max(0.001, Math.min(dt, 0.033));
             
             // 清空画布
-            drawBackground();
+            drawBackground(dt);
             
             // 更新和绘制粒子
             gameState.particles = gameState.particles.filter(particle => {
-                const alive = particle.update();
+                const alive = particle.update(dt);
                 if (alive) particle.draw();
                 return alive;
             });
@@ -695,7 +704,7 @@
             
             // 更新和绘制敌人
             enemies = enemies.filter(enemy => {
-                const alive = enemy.update();
+                const alive = enemy.update(dt);
                 if (alive) {
                     enemy.draw();
                     
@@ -715,7 +724,7 @@
             });
             
             // 更新和绘制玩家
-            updatePlayer();
+            updatePlayer(dt);
             drawPlayer();
             
             // 得分（基于时间）
