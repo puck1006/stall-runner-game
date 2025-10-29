@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
     <title>高速躲避游戏 · H5</title>
     <style>
         * {
@@ -17,7 +17,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: 100svh; /* 移动端地址栏收起适配 */
             overflow: hidden;
         }
         
@@ -28,7 +28,8 @@
             box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
             overflow: hidden;
             width: 100vw;
-            height: 100vh;
+            height: 100svh; /* 使用小视口单位，避免软键盘影响 */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
             touch-action: none; /* 禁止系统手势，方便触控 */
         }
         
@@ -41,10 +42,10 @@
         
         #ui {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: calc(16px + env(safe-area-inset-top));
+            left: calc(16px + env(safe-area-inset-left));
             color: white;
-            font-size: 20px;
+            font-size: clamp(14px, 2.6vw, 18px);
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
             z-index: 10;
         }
@@ -142,12 +143,28 @@
 
         .instructions {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            right: calc(16px + env(safe-area-inset-right));
             color: rgba(255, 255, 255, 0.7);
             font-size: 14px;
             text-align: right;
             z-index: 10;
+        }
+
+        /* 虚拟摇杆（动态出现，不遮挡主视野） */
+        .joy-base, .joy-knob { position:absolute; pointer-events:none; z-index:25; display:none; }
+        .joy-base {
+            width: 120px; height: 120px; margin: -60px 0 0 -60px;
+            border-radius: 999px; border:2px solid rgba(255,255,255,.35);
+            background: rgba(255,255,255,.07);
+            box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.12);
+            backdrop-filter: blur(6px);
+        }
+        .joy-knob {
+            width: 56px; height: 56px; margin: -28px 0 0 -28px;
+            border-radius: 999px; border:2px solid rgba(255,255,255,.9);
+            background: radial-gradient(circle at 30% 30%, #fff, #dbeafe);
+            box-shadow: 0 10px 24px rgba(0,0,0,.35);
         }
 
         /* 排行榜弹层 */
@@ -192,11 +209,14 @@
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
+        <!-- 动态虚拟摇杆（指下位置出现） -->
+        <div id="joyBase" class="joy-base" aria-hidden="true"></div>
+        <div id="joyKnob" class="joy-knob" aria-hidden="true"></div>
         
         <!-- 首页覆盖层 -->
         <div id="homeOverlay">
             <div class="home-title">高速躲避 · 追回金小彩</div>
-            <div class="home-sub">拖动屏幕移动，躲避敌人，坚持越久分越高</div>
+            <div class="home-sub">按住屏幕出现虚拟摇杆，躲避敌人，坚持越久分越高</div>
             <div class="home-actions">
                 <button class="btn btn-primary" id="btnStart">开始游戏</button>
                 <button class="btn btn-secondary" id="btnRank">排行榜</button>
@@ -229,7 +249,7 @@
         </div>
         
         <div class="instructions">
-            移动端：按住并拖动屏幕移动<br>
+            移动端：按住屏幕拖动虚拟摇杆<br>
             电脑端：WASD / 方向键
         </div>
 
@@ -248,6 +268,7 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
         const $ = (id)=>document.getElementById(id);
         const homeOverlay = $('homeOverlay');
         const rankOverlay = $('rankOverlay');
@@ -259,14 +280,27 @@
         const btnSubmitScore = $('btnSubmitScore');
         const btnShowRank = $('btnShowRank');
 
-        // 自适应画布
+        // 视口/缩放参数
+        const viewport = { w: 0, h: 0, dpr, scale: 1 };
         function resizeCanvas() {
             const rect = document.getElementById('gameContainer');
             const w = rect.clientWidth;
             const h = rect.clientHeight;
-            canvas.width = Math.floor(w);
-            canvas.height = Math.floor(h);
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            viewport.w = w; viewport.h = h; viewport.scale = Math.min(w, h) / 375; // 以 iPhone 11 宽度为基准
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 坐标系仍使用 CSS 像素
+
+            // 根据屏幕调整玩家与难度参数
+            const r = Math.max(12, Math.min(22, Math.round(18 * viewport.scale)));
+            const sp = Math.max(4, Math.min(10, 7 * viewport.scale));
+            player.radius = r;
+            player.baseSpeed = sp;
+
+            // 重新布置星空
+            setupStars();
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
@@ -282,10 +316,10 @@
         
         // 玩家
         const player = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            radius: 15,
-            speed: 5,
+            x: viewport.w / 2,
+            y: viewport.h / 2,
+            radius: 18,
+            baseSpeed: 7,
             color: '#00ff88',
             velX: 0,
             velY: 0,
@@ -299,22 +333,40 @@
         
         // 键盘输入 & 触控
         const keys = {};
-        const control = { active:false };
+        const control = { active:false, ox:0, oy:0, vx:0, vy:0, strength:0 };
+        const joyBase = document.getElementById('joyBase');
+        const joyKnob = document.getElementById('joyKnob');
+        const JOY_R = 60; // 摇杆半径（CSS px）
         document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
         document.addEventListener('keyup', (e) => { delete keys[e.key.toLowerCase()]; });
         canvas.addEventListener('pointerdown', (e)=>{
-            control.active = true;
             const rect = canvas.getBoundingClientRect();
-            player.targetX = (e.clientX - rect.left);
-            player.targetY = (e.clientY - rect.top);
+            const x = (e.clientX - rect.left);
+            const y = (e.clientY - rect.top);
+            control.active = true; control.ox = x; control.oy = y; control.vx = 0; control.vy = 0; control.strength = 0;
+            // 显示摇杆
+            joyBase.style.display = 'block'; joyKnob.style.display = 'block';
+            joyBase.style.left = x + 'px'; joyBase.style.top = y + 'px';
+            joyKnob.style.left = x + 'px'; joyKnob.style.top = y + 'px';
         }, {passive:false});
         canvas.addEventListener('pointermove', (e)=>{
             if(!control.active) return;
             const rect = canvas.getBoundingClientRect();
-            player.targetX = (e.clientX - rect.left);
-            player.targetY = (e.clientY - rect.top);
+            const x = (e.clientX - rect.left);
+            const y = (e.clientY - rect.top);
+            const dx = x - control.ox; const dy = y - control.oy;
+            const dist = Math.hypot(dx, dy);
+            const clamped = Math.min(JOY_R, dist);
+            const nx = (dx / (dist || 1)) * clamped; const ny = (dy / (dist || 1)) * clamped;
+            control.vx = (dx / (dist || 1)); control.vy = (dy / (dist || 1));
+            control.strength = clamped / JOY_R; // 0..1
+            joyKnob.style.left = (control.ox + nx) + 'px';
+            joyKnob.style.top  = (control.oy + ny) + 'px';
         }, {passive:false});
-        window.addEventListener('pointerup', ()=>{ control.active = false; player.targetX = player.targetY = null; });
+        window.addEventListener('pointerup', ()=>{
+            control.active = false; control.vx = control.vy = control.strength = 0;
+            joyBase.style.display = 'none'; joyKnob.style.display = 'none';
+        });
         
         // 敌人类
         class Enemy {
@@ -323,34 +375,36 @@
                 const side = Math.floor(Math.random() * 4);
                 
                 if (side === 0) { // 上
-                    this.x = Math.random() * canvas.width;
+                    this.x = Math.random() * viewport.w;
                     this.y = -20;
                 } else if (side === 1) { // 右
-                    this.x = canvas.width + 20;
-                    this.y = Math.random() * canvas.height;
+                    this.x = viewport.w + 20;
+                    this.y = Math.random() * viewport.h;
                 } else if (side === 2) { // 下
-                    this.x = Math.random() * canvas.width;
-                    this.y = canvas.height + 20;
+                    this.x = Math.random() * viewport.w;
+                    this.y = viewport.h + 20;
                 } else { // 左
                     this.x = -20;
-                    this.y = Math.random() * canvas.height;
+                    this.y = Math.random() * viewport.h;
                 }
                 
                 // 随机目标点（不一定是玩家位置）
-                const targetX = player.x + (Math.random() - 0.5) * 200;
-                const targetY = player.y + (Math.random() - 0.5) * 200;
+                const jitter = 160 * viewport.scale;
+                const targetX = player.x + (Math.random() - 0.5) * jitter;
+                const targetY = player.y + (Math.random() - 0.5) * jitter;
                 
                 // 计算朝向目标的速度向量
                 const angle = Math.atan2(targetY - this.y, targetX - this.x);
                 
-                // 随机速度（4-8之间）
-                const speed = 4 + Math.random() * 4;
+                // 随机速度，随屏幕尺寸与时间渐增
+                const base = 3.2 * viewport.scale;
+                const speed = base + Math.random() * (4.5 * viewport.scale);
                 
                 this.velX = Math.cos(angle) * speed;
                 this.velY = Math.sin(angle) * speed;
                 
-                // 随机大小
-                this.radius = 8 + Math.random() * 12;
+                // 随机大小（随屏幕缩放）
+                this.radius = Math.max(6, Math.min(18, 10 * viewport.scale + Math.random() * 8));
                 
                 // 随机颜色
                 const colors = ['#ff4757', '#ff6348', '#ff7f50', '#ffa502', '#ff6b81'];
@@ -366,8 +420,8 @@
                 this.rotation += this.rotationSpeed;
                 
                 // 移出屏幕很远就删除
-                return !(this.x < -100 || this.x > canvas.width + 100 || 
-                        this.y < -100 || this.y > canvas.height + 100);
+                return !(this.x < -100 || this.x > viewport.w + 100 || 
+                        this.y < -100 || this.y > viewport.h + 100);
             }
             
             draw() {
@@ -465,33 +519,26 @@
         
         // 更新玩家
         function updatePlayer() {
-            // 触控优先：朝目标移动
-            if (control.active && player.targetX != null && player.targetY != null) {
-                const dx = player.targetX - player.x;
-                const dy = player.targetY - player.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist > 4) {
-                    player.velX = (dx / dist) * player.speed;
-                    player.velY = (dy / dist) * player.speed;
-                    player.x += player.velX;
-                    player.y += player.velY;
-                }
+            // 虚拟摇杆优先
+            if (control.active) {
+                const speed = player.baseSpeed * (0.4 + 0.6 * control.strength); // 半推也有速度
+                player.velX = control.vx * speed;
+                player.velY = control.vy * speed;
             } else {
-                // 键盘控制
+                // 键盘回退
                 player.velX = 0; player.velY = 0;
-                if (keys['w'] || keys['arrowup']) player.velY = -player.speed;
-                if (keys['s'] || keys['arrowdown']) player.velY = player.speed;
-                if (keys['a'] || keys['arrowleft']) player.velX = -player.speed;
-                if (keys['d'] || keys['arrowright']) player.velX = player.speed;
-                if (player.velX !== 0 && player.velY !== 0) {
-                    player.velX *= 0.707; player.velY *= 0.707;
-                }
-                player.x += player.velX; player.y += player.velY;
+                if (keys['w'] || keys['arrowup']) player.velY = -player.baseSpeed;
+                if (keys['s'] || keys['arrowdown']) player.velY = player.baseSpeed;
+                if (keys['a'] || keys['arrowleft']) player.velX = -player.baseSpeed;
+                if (keys['d'] || keys['arrowright']) player.velX = player.baseSpeed;
+                if (player.velX !== 0 && player.velY !== 0) { player.velX *= 0.707; player.velY *= 0.707; }
             }
+
+            player.x += player.velX; player.y += player.velY;
             
             // 边界限制
-            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+            player.x = Math.max(player.radius, Math.min(viewport.w - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(viewport.h - player.radius, player.y));
             
             // 轨迹效果
             player.trail.push({x: player.x, y: player.y, alpha: 0.5});
@@ -570,8 +617,8 @@
                 particles: []
             };
             enemies = [];
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
+            player.x = viewport.w / 2;
+            player.y = viewport.h / 2;
             player.trail = [];
             document.getElementById('gameOver').style.display = 'none';
             gameLoop();
@@ -584,18 +631,22 @@
         
         // 绘制星空背景
         let stars = [];
-        for (let i = 0; i < 100; i++) {
-            stars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                radius: Math.random() * 2,
-                alpha: Math.random()
-            });
+        function setupStars(){
+            const count = Math.round(90 * viewport.scale + 40); // 随屏幕缩放
+            stars = [];
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * viewport.w,
+                    y: Math.random() * viewport.h,
+                    radius: Math.random() * 2 + 0.4,
+                    alpha: Math.random()
+                });
+            }
         }
         
         function drawBackground() {
             ctx.fillStyle = '#0f0f1e';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, viewport.w, viewport.h);
             
             // 绘制星星
             stars.forEach(star => {
@@ -616,6 +667,7 @@
         // 主游戏循环
         let lastSpawnTime = Date.now();
         let spawnInterval = 800; // 初始生成间隔
+        let hiddenAt = 0; // 页面隐藏时刻
         
         function gameLoop() {
             if (!gameState.running) return;
@@ -630,10 +682,11 @@
                 return alive;
             });
             
-            // 生成敌人（随着时间加快）
+            // 生成敌人（随着时间加快 & 设备缩放）
             const now = Date.now();
             const elapsed = (now - gameState.startTime) / 1000;
-            spawnInterval = Math.max(300, 800 - elapsed * 10); // 越来越快
+            const accel = 10 * viewport.scale;
+            spawnInterval = Math.max(260, 820 - elapsed * accel); // 越来越快
             
             if (now - lastSpawnTime > spawnInterval) {
                 spawnEnemy();
@@ -728,6 +781,12 @@
             addScore(name, gameState.score, time);
             alert('已提交上榜！');
             renderRank();
+        });
+
+        // 页面可见性：后台暂停计时（不影响得分 fairness）
+        document.addEventListener('visibilitychange', ()=>{
+            if (document.hidden) hiddenAt = Date.now();
+            else if (hiddenAt) { gameState.startTime += (Date.now() - hiddenAt); hiddenAt = 0; }
         });
 
         // 默认显示首页
