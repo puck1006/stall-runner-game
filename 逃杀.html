@@ -270,6 +270,10 @@
         const ctx = canvas.getContext('2d');
         const dpr = Math.max(1, window.devicePixelRatio || 1);
         let player = null; // 提前声明，避免 resizeCanvas 初次执行时访问到未初始化的 player
+        // 速度倍率（可通过 ?speed=1.2 或 localStorage.escape_speed_k 调整）
+        const qs = new URLSearchParams(location.search);
+        const SPEED_K = Math.max(0.5, Math.min(2.0,
+            Number(qs.get('speed')) || Number(localStorage.getItem('escape_speed_k')||1) || 1));
         const $ = (id)=>document.getElementById(id);
         const homeOverlay = $('homeOverlay');
         const rankOverlay = $('rankOverlay');
@@ -296,9 +300,9 @@
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 坐标系仍使用 CSS 像素
 
             // 根据屏幕调整玩家与难度参数
-            const r = Math.max(12, Math.min(22, Math.round(18 * viewport.scale)));
-            // 速度单位改为 px/s，随屏幕缩放
-            const sp = Math.max(180, Math.min(420, 300 * viewport.scale));
+            const r = Math.max(12, Math.min(24, Math.round(20 * viewport.scale)));
+            // 速度单位改为 px/s，H5 提速（默认约 520px/s，可用 ?speed 调整）
+            const sp = Math.max(320, Math.min(900, 520 * viewport.scale)) * SPEED_K;
             if (player) { player.radius = r; player.baseSpeed = sp; }
 
             // 重新布置星空
@@ -524,7 +528,9 @@
         function updatePlayer(dt) {
             // 虚拟摇杆优先
             if (control.active) {
-                const speed = player.baseSpeed * (0.4 + 0.6 * control.strength); // 半推也有速度
+                // 更灵敏的速度曲线（sqrt 提升小位移速度）
+                const factor = 0.6 + 0.4 * Math.sqrt(Math.max(0, Math.min(1, control.strength)));
+                const speed = player.baseSpeed * factor;
                 player.velX = control.vx * speed;
                 player.velY = control.vy * speed;
             } else {
