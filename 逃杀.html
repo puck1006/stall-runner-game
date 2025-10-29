@@ -269,6 +269,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const dpr = Math.max(1, window.devicePixelRatio || 1);
+        let player = null; // 提前声明，避免 resizeCanvas 初次执行时访问到未初始化的 player
         const $ = (id)=>document.getElementById(id);
         const homeOverlay = $('homeOverlay');
         const rankOverlay = $('rankOverlay');
@@ -296,8 +297,7 @@
             // 根据屏幕调整玩家与难度参数
             const r = Math.max(12, Math.min(22, Math.round(18 * viewport.scale)));
             const sp = Math.max(4, Math.min(10, 7 * viewport.scale));
-            player.radius = r;
-            player.baseSpeed = sp;
+            if (player) { player.radius = r; player.baseSpeed = sp; }
 
             // 重新布置星空
             setupStars();
@@ -315,7 +315,7 @@
         };
         
         // 玩家
-        const player = {
+        player = {
             x: viewport.w / 2,
             y: viewport.h / 2,
             radius: 18,
