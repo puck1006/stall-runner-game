@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分辨率速度测试</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    .info-box {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    .label {
+      font-weight: 600;
+      opacity: 0.8;
+    }
+    .value {
+      font-weight: 700;
+      color: #00ff88;
+    }
+    .section-title {
+      font-size: 20px;
+      margin: 30px 0 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    .formula {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      margin: 10px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .highlight {
+      color: #ffd700;
+      font-weight: 700;
+    }
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .device-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      backdrop-filter: blur(10px);
+    }
+    .device-name {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #ffd700;
+    }
+    .device-info {
+      font-size: 13px;
+      line-height: 1.8;
+      opacity: 0.9;
+    }
+    @media (max-width: 600px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 分辨率速度测试</h1>
+    
+    <div class="info-box">
+      <div class="info-row">
+        <span class="label">当前设备分辨率</span>
+        <span class="value" id="resolution">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">屏幕最短边</span>
+        <span class="value" id="minDim">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">设备像素比 (DPR)</span>
+        <span class="value" id="dpr">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">物理分辨率</span>
+        <span class="value" id="physicalRes">-</span>
+      </div>
+    </div>
+
+    <h2 class="section-title">⚡ 速度计算</h2>
+    
+    <div class="info-box">
+      <div class="info-row">
+        <span class="label">玩家速度 (像素/帧)</span>
+        <span class="value" id="playerSpeed">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">敌人速度范围 (像素/帧)</span>
+        <span class="value" id="enemySpeed">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">横穿屏幕所需时间 (60FPS)</span>
+        <span class="value" id="crossTime">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">敌人追上玩家所需时间</span>
+        <span class="value" id="catchTime">-</span>
+      </div>
+    </div>
+
+    <div class="formula">
+      <div><span class="highlight">玩家速度</span> = 屏幕最短边 / 75</div>
+      <div><span class="highlight">敌人基础速度</span> = 屏幕最短边 / 95</div>
+      <div><span class="highlight">敌人实际速度</span> = 基础速度 × (1 ~ 2)</div>
+    </div>
+
+    <h2 class="section-title">📱 常见设备对比</h2>
+    
+    <div class="comparison" id="deviceComparison"></div>
+
+    <h2 class="section-title">💡 设计说明</h2>
+    
+    <div class="info-box">
+      <p style="line-height: 1.8; opacity: 0.9;">
+        ✅ <strong>分辨率无关</strong>: 速度相对于屏幕尺寸,不同设备体验一致<br>
+        ✅ <strong>60Hz 基准</strong>: 基于 60FPS 设计,大多数手机默认刷新率<br>
+        ✅ <strong>合理难度</strong>: 玩家约 1.25 秒横穿屏幕,敌人稍慢<br>
+        ✅ <strong>动态平衡</strong>: 敌人速度随机,增加游戏变化性<br>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // 常见设备配置
+    const devices = [
+      { name: 'iPhone SE', width: 375, height: 667 },
+      { name: 'iPhone 12/13', width: 390, height: 844 },
+      { name: 'iPhone 14 Pro Max', width: 430, height: 932 },
+      { name: 'Samsung S21', width: 360, height: 800 },
+      { name: 'iPad', width: 768, height: 1024 },
+      { name: 'iPad Pro 12.9"', width: 1024, height: 1366 },
+    ];
+
+    function calculateSpeed(width, height) {
+      const minDim = Math.min(width, height);
+      const playerSpeed = minDim / 75;
+      const enemyBaseSpeed = minDim / 95;
+      const enemyMinSpeed = enemyBaseSpeed;
+      const enemyMaxSpeed = enemyBaseSpeed * 2;
+      const crossTime = (minDim / playerSpeed / 60).toFixed(2);
+      const catchTime = ((minDim / (enemyMaxSpeed - playerSpeed)) / 60).toFixed(2);
+      
+      return {
+        playerSpeed: playerSpeed.toFixed(2),
+        enemyMinSpeed: enemyMinSpeed.toFixed(2),
+        enemyMaxSpeed: enemyMaxSpeed.toFixed(2),
+        crossTime,
+        catchTime
+      };
+    }
+
+    // 更新当前设备信息
+    function updateCurrentDevice() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const minDim = Math.min(width, height);
+      const dpr = window.devicePixelRatio || 1;
+      
+      document.getElementById('resolution').textContent = `${width} × ${height}`;
+      document.getElementById('minDim').textContent = `${minDim} px`;
+      document.getElementById('dpr').textContent = dpr.toFixed(2);
+      document.getElementById('physicalRes').textContent = 
+        `${Math.round(width * dpr)} × ${Math.round(height * dpr)}`;
+      
+      const speeds = calculateSpeed(width, height);
+      document.getElementById('playerSpeed').textContent = `${speeds.playerSpeed} px/帧`;
+      document.getElementById('enemySpeed').textContent = 
+        `${speeds.enemyMinSpeed} ~ ${speeds.enemyMaxSpeed} px/帧`;
+      document.getElementById('crossTime').textContent = `${speeds.crossTime} 秒`;
+      document.getElementById('catchTime').textContent = `${speeds.catchTime} 秒`;
+    }
+
+    // 生成设备对比
+    function generateDeviceComparison() {
+      const container = document.getElementById('deviceComparison');
+      
+      devices.forEach(device => {
+        const speeds = calculateSpeed(device.width, device.height);
+        const card = document.createElement('div');
+        card.className = 'device-card';
+        card.innerHTML = `
+          <div class="device-name">${device.name}</div>
+          <div class="device-info">
+            分辨率: ${device.width} × ${device.height}<br>
+            玩家速度: ${speeds.playerSpeed} px/帧<br>
+            敌人速度: ${speeds.enemyMinSpeed} ~ ${speeds.enemyMaxSpeed} px/帧<br>
+            横穿时间: ${speeds.crossTime} 秒
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 初始化
+    updateCurrentDevice();
+    generateDeviceComparison();
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', updateCurrentDevice);
+  </script>
+</body>
+</html>
+

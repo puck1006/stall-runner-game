@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
-    <title>高速躲避游戏 · H5</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高速躲避游戏</title>
     <style>
         * {
             margin: 0;
@@ -17,7 +17,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100svh; /* 移动端地址栏收起适配 */
+            min-height: 100vh;
             overflow: hidden;
         }
         
@@ -27,94 +27,23 @@
             border-radius: 10px;
             box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
             overflow: hidden;
-            width: 100vw;
-            height: 100svh; /* 使用小视口单位，避免软键盘影响 */
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-            touch-action: none; /* 禁止系统手势，方便触控 */
         }
         
         #gameCanvas {
             display: block;
             background: #0f0f1e;
-            width: 100%;
-            height: 100%;
         }
         
         #ui {
             position: absolute;
-            top: calc(16px + env(safe-area-inset-top));
-            left: calc(16px + env(safe-area-inset-left));
+            top: 20px;
+            left: 20px;
             color: white;
-            font-size: clamp(14px, 2.6vw, 18px);
+            font-size: 20px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
             z-index: 10;
         }
-
-        /* 首页覆盖层 */
-        #homeOverlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, rgba(102,126,234,.9), rgba(118,75,162,.9));
-            color: #fff;
-            z-index: 30;
-        }
-
-        .home-title {
-            font-size: clamp(24px, 6vw, 40px);
-            font-weight: 800;
-            text-align: center;
-            line-height: 1.2;
-            text-shadow: 0 6px 18px rgba(0,0,0,.35);
-            margin-bottom: 18px;
-            padding: 0 24px;
-        }
-
-        .home-sub {
-            font-size: clamp(14px, 3.5vw, 18px);
-            opacity: .9;
-            margin-bottom: 28px;
-        }
-
-        .home-actions {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .btn {
-            font-size: 16px;
-            padding: 12px 22px;
-            border-radius: 999px;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 6px 18px rgba(0,0,0,.25);
-        }
-        .btn-primary { background: linear-gradient(135deg,#22d3ee,#6366f1); }
-        .btn-secondary { background: linear-gradient(135deg,#fb7185,#f59e0b); }
-
-        .home-top3 {
-            background: rgba(0,0,0,.25);
-            padding: 12px 14px;
-            border-radius: 12px;
-            width: min(86vw, 520px);
-            backdrop-filter: blur(6px);
-        }
-
-        .top3-title { font-weight: 700; margin-bottom: 8px; opacity: .95; }
-        .top3-list { list-style: none; }
-        .top3-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px dashed rgba(255,255,255,.15);
-        }
-        .top3-item:last-child { border-bottom: none; }
-
+        
         #gameOver {
             position: absolute;
             top: 50%;
@@ -138,94 +67,37 @@
             margin-bottom: 30px;
         }
         
-        #gameOver .btn { font-size: 18px; padding: 10px 18px; }
-        #gameOver .btn + .btn { margin-left: 8px; }
-
+        #gameOver button {
+            font-size: 24px;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        #gameOver button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+        }
+        
         .instructions {
             position: absolute;
-            bottom: calc(16px + env(safe-area-inset-bottom));
-            right: calc(16px + env(safe-area-inset-right));
+            bottom: 20px;
+            right: 20px;
             color: rgba(255, 255, 255, 0.7);
             font-size: 14px;
             text-align: right;
             z-index: 10;
         }
-
-        /* 虚拟摇杆（动态出现，不遮挡主视野） */
-        .joy-base, .joy-knob { position:absolute; pointer-events:none; z-index:25; display:none; }
-        .joy-base {
-            width: 120px; height: 120px; margin: -60px 0 0 -60px;
-            border-radius: 999px; border:2px solid rgba(255,255,255,.35);
-            background: rgba(255,255,255,.07);
-            box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.12);
-            backdrop-filter: blur(6px);
-        }
-        .joy-knob {
-            width: 56px; height: 56px; margin: -28px 0 0 -28px;
-            border-radius: 999px; border:2px solid rgba(255,255,255,.9);
-            background: radial-gradient(circle at 30% 30%, #fff, #dbeafe);
-            box-shadow: 0 10px 24px rgba(0,0,0,.35);
-        }
-
-        /* 排行榜弹层 */
-        #rankOverlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 40;
-        }
-        .rank-card {
-            width: min(90vw, 560px);
-            max-height: 80vh;
-            overflow: auto;
-            background: #141427;
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,.08);
-            color: #fff;
-            box-shadow: 0 20px 60px rgba(0,0,0,.45);
-            padding: 16px;
-        }
-        .rank-title { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
-        .rank-list { list-style: none; }
-        .rank-item { display:flex; justify-content:space-between; padding: 10px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
-        .rank-item:last-child { border-bottom: none; }
-        .rank-actions { margin-top: 12px; text-align: right; }
-
-        /* 结束页输入框 */
-        .input {
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.2);
-            background: rgba(0,0,0,.2);
-            color: #fff;
-            outline: none;
-            width: 220px;
-        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        <!-- 动态虚拟摇杆（指下位置出现） -->
-        <div id="joyBase" class="joy-base" aria-hidden="true"></div>
-        <div id="joyKnob" class="joy-knob" aria-hidden="true"></div>
-        
-        <!-- 首页覆盖层 -->
-        <div id="homeOverlay">
-            <div class="home-title">高速躲避 · 追回金小彩</div>
-            <div class="home-sub">按住屏幕出现虚拟摇杆，躲避敌人，坚持越久分越高</div>
-            <div class="home-actions">
-                <button class="btn btn-primary" id="btnStart">开始游戏</button>
-                <button class="btn btn-secondary" id="btnRank">排行榜</button>
-            </div>
-            <div class="home-top3">
-                <div class="top3-title">今日前三</div>
-                <ul class="top3-list" id="top3"></ul>
-            </div>
-        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div id="ui">
             <div>得分: <span id="score">0</span></div>
@@ -237,83 +109,18 @@
             <h1>游戏结束!</h1>
             <p>最终得分: <span id="finalScore">0</span></p>
             <p>存活时间: <span id="finalTime">0</span>秒</p>
-            <div style="margin-bottom:10px;">
-                <input id="playerName" class="input" maxlength="12" placeholder="输入姓名上榜(2-12字符)" />
-                <button class="btn btn-primary" id="btnSubmitScore">提交上榜</button>
-            </div>
-            <div>
-                <button class="btn btn-secondary" id="btnShowRank">查看排行榜</button>
-                <button class="btn btn-primary" onclick="restartGame()">再来一局</button>
-                <button class="btn" style="background:#475569" onclick="backHome()">返回首页</button>
-            </div>
+            <button onclick="restartGame()">重新开始</button>
         </div>
         
         <div class="instructions">
-            移动端：按住屏幕拖动虚拟摇杆<br>
-            电脑端：WASD / 方向键
-        </div>
-
-        <!-- 排行榜 -->
-        <div id="rankOverlay">
-            <div class="rank-card">
-                <div class="rank-title">今日排行榜</div>
-                <ul id="rankList" class="rank-list"></ul>
-                <div class="rank-actions">
-                    <button class="btn" style="background:#475569" id="btnCloseRank">关闭</button>
-                </div>
-            </div>
+            使用 WASD 或 方向键 移动<br>
+            躲避来袭的敌人！
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
-        let player = null; // 提前声明，避免 resizeCanvas 初次执行时访问到未初始化的 player
-        // 速度倍率（?speed=1.2）与“每秒跨越多少个最短边”（?spw=1.3）
-        const qs = new URLSearchParams(location.search);
-        const SPEED_K = Math.max(0.5, Math.min(3.0,
-            Number(qs.get('speed')) || Number(localStorage.getItem('escape_speed_k')||1) || 1));
-        // 每秒跨越“最短边”的屏数（默认 2.2 屏/秒，确保任何设备手感一致且足够快）
-        const SPEED_SCREENS = Math.max(0.6, Math.min(4.0,
-            Number(qs.get('spw')) || Number(localStorage.getItem('escape_spw')||2.2) || 2.2));
-        const $ = (id)=>document.getElementById(id);
-        const homeOverlay = $('homeOverlay');
-        const rankOverlay = $('rankOverlay');
-        const rankList = $('rankList');
-        const top3 = $('top3');
-        const btnStart = $('btnStart');
-        const btnRank = $('btnRank');
-        const btnCloseRank = $('btnCloseRank');
-        const btnSubmitScore = $('btnSubmitScore');
-        const btnShowRank = $('btnShowRank');
-
-        // 视口/缩放参数
-        const viewport = { w: 0, h: 0, dpr, scale: 1 };
-        let stars = []; // 提前声明，避免 setupStars 在首次 resize 时访问未初始化变量
-        function resizeCanvas() {
-            const rect = document.getElementById('gameContainer');
-            const w = rect.clientWidth;
-            const h = rect.clientHeight;
-            viewport.w = w; viewport.h = h; viewport.scale = Math.min(w, h) / 375; // 以 iPhone 11 宽度为基准
-            canvas.style.width = w + 'px';
-            canvas.style.height = h + 'px';
-            canvas.width = Math.round(w * dpr);
-            canvas.height = Math.round(h * dpr);
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 坐标系仍使用 CSS 像素
-
-            // 根据屏幕调整玩家与难度参数
-            const r = Math.max(12, Math.min(24, Math.round(20 * viewport.scale)));
-            // 速度：以“每秒跨越最短边的比例”定义，确保不同分辨率/刷新率一致
-            const minDim = Math.max(200, Math.min(viewport.w, viewport.h));
-            const sp = (SPEED_SCREENS * minDim) * SPEED_K; // px/s
-            if (player) { player.radius = r; player.baseSpeed = sp; }
-
-            // 重新布置星空
-            setupStars();
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
         
         // 游戏状态
         let gameState = {
@@ -325,57 +132,31 @@
         };
         
         // 玩家
-        player = {
-            x: viewport.w / 2,
-            y: viewport.h / 2,
-            radius: 18,
-            baseSpeed: 7,
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 15,
+            speed: 5,
             color: '#00ff88',
             velX: 0,
             velY: 0,
-            trail: [],
-            targetX: null,
-            targetY: null
+            trail: []
         };
         
         // 敌人数组
         let enemies = [];
         
-        // 键盘输入 & 触控
+        // 键盘输入
         const keys = {};
-        const control = { active:false, ox:0, oy:0, vx:0, vy:0, strength:0 };
-        const joyBase = document.getElementById('joyBase');
-        const joyKnob = document.getElementById('joyKnob');
-        const JOY_R = 60; // 摇杆半径（CSS px）
-        document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-        document.addEventListener('keyup', (e) => { delete keys[e.key.toLowerCase()]; });
-        canvas.addEventListener('pointerdown', (e)=>{
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left);
-            const y = (e.clientY - rect.top);
-            control.active = true; control.ox = x; control.oy = y; control.vx = 0; control.vy = 0; control.strength = 0;
-            // 显示摇杆
-            joyBase.style.display = 'block'; joyKnob.style.display = 'block';
-            joyBase.style.left = x + 'px'; joyBase.style.top = y + 'px';
-            joyKnob.style.left = x + 'px'; joyKnob.style.top = y + 'px';
-        }, {passive:false});
-        canvas.addEventListener('pointermove', (e)=>{
-            if(!control.active) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left);
-            const y = (e.clientY - rect.top);
-            const dx = x - control.ox; const dy = y - control.oy;
-            const dist = Math.hypot(dx, dy);
-            const clamped = Math.min(JOY_R, dist);
-            const nx = (dx / (dist || 1)) * clamped; const ny = (dy / (dist || 1)) * clamped;
-            control.vx = (dx / (dist || 1)); control.vy = (dy / (dist || 1));
-            control.strength = clamped / JOY_R; // 0..1
-            joyKnob.style.left = (control.ox + nx) + 'px';
-            joyKnob.style.top  = (control.oy + ny) + 'px';
-        }, {passive:false});
-        window.addEventListener('pointerup', ()=>{
-            control.active = false; control.vx = control.vy = control.strength = 0;
-            joyBase.style.display = 'none'; joyKnob.style.display = 'none';
+        
+        // 监听键盘事件
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            delete keys[e.key.toLowerCase()];
         });
         
         // 敌人类
@@ -385,54 +166,51 @@
                 const side = Math.floor(Math.random() * 4);
                 
                 if (side === 0) { // 上
-                    this.x = Math.random() * viewport.w;
+                    this.x = Math.random() * canvas.width;
                     this.y = -20;
                 } else if (side === 1) { // 右
-                    this.x = viewport.w + 20;
-                    this.y = Math.random() * viewport.h;
+                    this.x = canvas.width + 20;
+                    this.y = Math.random() * canvas.height;
                 } else if (side === 2) { // 下
-                    this.x = Math.random() * viewport.w;
-                    this.y = viewport.h + 20;
+                    this.x = Math.random() * canvas.width;
+                    this.y = canvas.height + 20;
                 } else { // 左
                     this.x = -20;
-                    this.y = Math.random() * viewport.h;
+                    this.y = Math.random() * canvas.height;
                 }
                 
                 // 随机目标点（不一定是玩家位置）
-                const jitter = 160 * viewport.scale;
-                const targetX = player.x + (Math.random() - 0.5) * jitter;
-                const targetY = player.y + (Math.random() - 0.5) * jitter;
+                const targetX = player.x + (Math.random() - 0.5) * 200;
+                const targetY = player.y + (Math.random() - 0.5) * 200;
                 
-                // 计算朝向目标的速度向量（px/s）
+                // 计算朝向目标的速度向量
                 const angle = Math.atan2(targetY - this.y, targetX - this.x);
-
-                // 敌人速度（px/s）：按屏幕最短边比例，独立于刷新率/分辨率
-                const minDim = Math.max(200, Math.min(viewport.w, viewport.h));
-                const base = 0.9 * minDim;   // 0.9 屏/秒
-                const speed = base + Math.random() * (0.6 * minDim); // 0.9–1.5 屏/秒
-
+                
+                // 随机速度（4-8之间）
+                const speed = 4 + Math.random() * 4;
+                
                 this.velX = Math.cos(angle) * speed;
                 this.velY = Math.sin(angle) * speed;
-
-                // 随机大小（随屏幕缩放）
-                this.radius = Math.max(6, Math.min(18, 10 * viewport.scale + Math.random() * 8));
-
+                
+                // 随机大小
+                this.radius = 8 + Math.random() * 12;
+                
                 // 随机颜色
                 const colors = ['#ff4757', '#ff6348', '#ff7f50', '#ffa502', '#ff6b81'];
                 this.color = colors[Math.floor(Math.random() * colors.length)];
-
+                
                 this.rotation = 0;
-                this.rotationSpeed = (Math.random() - 0.5) * 1.0; // 弧度/秒
+                this.rotationSpeed = (Math.random() - 0.5) * 0.2;
             }
-
-            update(dt) {
-                this.x += this.velX * dt;
-                this.y += this.velY * dt;
-                this.rotation += this.rotationSpeed * dt;
+            
+            update() {
+                this.x += this.velX;
+                this.y += this.velY;
+                this.rotation += this.rotationSpeed;
                 
                 // 移出屏幕很远就删除
-                return !(this.x < -100 || this.x > viewport.w + 100 || 
-                        this.y < -100 || this.y > viewport.h + 100);
+                return !(this.x < -100 || this.x > canvas.width + 100 || 
+                        this.y < -100 || this.y > canvas.height + 100);
             }
             
             draw() {
@@ -478,21 +256,20 @@
             constructor(x, y, color) {
                 this.x = x;
                 this.y = y;
-                // 粒子速度（px/s）
-                this.velX = (Math.random() - 0.5) * 240 * viewport.scale;
-                this.velY = (Math.random() - 0.5) * 240 * viewport.scale;
+                this.velX = (Math.random() - 0.5) * 8;
+                this.velY = (Math.random() - 0.5) * 8;
                 this.radius = Math.random() * 3 + 1;
                 this.color = color;
                 this.life = 1;
-                this.decay = 1.2 + Math.random(); // 每秒衰减量
+                this.decay = Math.random() * 0.03 + 0.02;
             }
             
-            update(dt) {
-                this.x += this.velX * dt;
-                this.y += this.velY * dt;
-                this.velX *= Math.pow(0.98, dt * 60);
-                this.velY *= Math.pow(0.98, dt * 60);
-                this.life -= this.decay * dt;
+            update() {
+                this.x += this.velX;
+                this.y += this.velY;
+                this.velX *= 0.98;
+                this.velY *= 0.98;
+                this.life -= this.decay;
                 return this.life > 0;
             }
             
@@ -530,29 +307,28 @@
         }
         
         // 更新玩家
-        function updatePlayer(dt) {
-            // 虚拟摇杆优先
-            if (control.active) {
-                // 灵敏速度曲线：最低 0.35x，最大 1x；sqrt 提升微位移速度
-                const factor = 0.35 + 0.65 * Math.sqrt(Math.max(0, Math.min(1, control.strength)));
-                const speed = player.baseSpeed * factor;
-                player.velX = control.vx * speed;
-                player.velY = control.vy * speed;
-            } else {
-                // 键盘回退
-                player.velX = 0; player.velY = 0;
-                if (keys['w'] || keys['arrowup']) player.velY = -player.baseSpeed;
-                if (keys['s'] || keys['arrowdown']) player.velY = player.baseSpeed;
-                if (keys['a'] || keys['arrowleft']) player.velX = -player.baseSpeed;
-                if (keys['d'] || keys['arrowright']) player.velX = player.baseSpeed;
-                if (player.velX !== 0 && player.velY !== 0) { player.velX *= 0.707; player.velY *= 0.707; }
+        function updatePlayer() {
+            // 键盘控制
+            player.velX = 0;
+            player.velY = 0;
+            
+            if (keys['w'] || keys['arrowup']) player.velY = -player.speed;
+            if (keys['s'] || keys['arrowdown']) player.velY = player.speed;
+            if (keys['a'] || keys['arrowleft']) player.velX = -player.speed;
+            if (keys['d'] || keys['arrowright']) player.velX = player.speed;
+            
+            // 对角线移动时归一化速度
+            if (player.velX !== 0 && player.velY !== 0) {
+                player.velX *= 0.707;
+                player.velY *= 0.707;
             }
-
-            player.x += player.velX * dt; player.y += player.velY * dt;
+            
+            player.x += player.velX;
+            player.y += player.velY;
             
             // 边界限制
-            player.x = Math.max(player.radius, Math.min(viewport.w - player.radius, player.x));
-            player.y = Math.max(player.radius, Math.min(viewport.h - player.radius, player.y));
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
             
             // 轨迹效果
             player.trail.push({x: player.x, y: player.y, alpha: 0.5});
@@ -616,9 +392,6 @@
             document.getElementById('finalScore').textContent = gameState.score;
             document.getElementById('finalTime').textContent = elapsed;
             document.getElementById('gameOver').style.display = 'block';
-            // 默认填充一个上次的名字
-            const last = localStorage.getItem('escape_last_name') || '';
-            if (last) document.getElementById('playerName').value = last;
         }
         
         // 重新开始
@@ -631,35 +404,27 @@
                 particles: []
             };
             enemies = [];
-            player.x = viewport.w / 2;
-            player.y = viewport.h / 2;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
             player.trail = [];
             document.getElementById('gameOver').style.display = 'none';
             gameLoop();
         }
-
-        function backHome() {
-            document.getElementById('gameOver').style.display = 'none';
-            showHome();
-        }
         
         // 绘制星空背景
-        function setupStars(){
-            const count = Math.round(90 * viewport.scale + 40); // 随屏幕缩放
-            stars = [];
-            for (let i = 0; i < count; i++) {
-                stars.push({
-                    x: Math.random() * viewport.w,
-                    y: Math.random() * viewport.h,
-                    radius: Math.random() * 2 + 0.4,
-                    alpha: Math.random()
-                });
-            }
+        let stars = [];
+        for (let i = 0; i < 100; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 2,
+                alpha: Math.random()
+            });
         }
         
-        function drawBackground(dt) {
+        function drawBackground() {
             ctx.fillStyle = '#0f0f1e';
-            ctx.fillRect(0, 0, viewport.w, viewport.h);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             // 绘制星星
             stars.forEach(star => {
@@ -672,7 +437,7 @@
                 ctx.restore();
                 
                 // 闪烁效果
-                star.alpha += (Math.random() - 0.5) * 0.1 * dt * 60;
+                star.alpha += (Math.random() - 0.5) * 0.1;
                 star.alpha = Math.max(0.2, Math.min(1, star.alpha));
             });
         }
@@ -680,33 +445,24 @@
         // 主游戏循环
         let lastSpawnTime = Date.now();
         let spawnInterval = 800; // 初始生成间隔
-        let hiddenAt = 0; // 页面隐藏时刻
         
-        let prevTs = null;
-        function gameLoop(ts) {
+        function gameLoop() {
             if (!gameState.running) return;
-            if (typeof ts !== 'number') ts = performance.now();
-            if (prevTs == null) prevTs = ts;
-            let dt = (ts - prevTs) / 1000;
-            prevTs = ts;
-            // clamp，避免切后台或掉帧导致大步跳
-            dt = Math.max(0.001, Math.min(dt, 0.033));
             
             // 清空画布
-            drawBackground(dt);
+            drawBackground();
             
             // 更新和绘制粒子
             gameState.particles = gameState.particles.filter(particle => {
-                const alive = particle.update(dt);
+                const alive = particle.update();
                 if (alive) particle.draw();
                 return alive;
             });
             
-            // 生成敌人（随着时间加快 & 设备缩放）
+            // 生成敌人（随着时间加快）
             const now = Date.now();
             const elapsed = (now - gameState.startTime) / 1000;
-            const accel = 10 * viewport.scale;
-            spawnInterval = Math.max(260, 820 - elapsed * accel); // 越来越快
+            spawnInterval = Math.max(300, 800 - elapsed * 10); // 越来越快
             
             if (now - lastSpawnTime > spawnInterval) {
                 spawnEnemy();
@@ -715,7 +471,7 @@
             
             // 更新和绘制敌人
             enemies = enemies.filter(enemy => {
-                const alive = enemy.update(dt);
+                const alive = enemy.update();
                 if (alive) {
                     enemy.draw();
                     
@@ -735,7 +491,7 @@
             });
             
             // 更新和绘制玩家
-            updatePlayer(dt);
+            updatePlayer();
             drawPlayer();
             
             // 得分（基于时间）
@@ -746,71 +502,9 @@
             
             requestAnimationFrame(gameLoop);
         }
-
-        // ========= 排行榜逻辑 =========
-        const LB_KEY = 'escape_leaderboard_v1';
-        function loadLB(){
-            try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); } catch(e){ return []; }
-        }
-        function saveLB(list){ localStorage.setItem(LB_KEY, JSON.stringify(list)); }
-        function addScore(name, score, time){
-            const list = loadLB();
-            list.push({name, score, time, ts: Date.now()});
-            list.sort((a,b)=> b.score - a.score || a.time - b.time || a.ts - b.ts);
-            saveLB(list.slice(0, 50));
-        }
-        function renderTop3(){
-            const list = loadLB().slice(0,3);
-            if(list.length===0){ top3.innerHTML = '<li class="top3-item"><span>暂无数据</span><span>-</span></li>'; return; }
-            top3.innerHTML = list.map((it,idx)=>`<li class="top3-item"><span>${idx+1}. ${escapeHtml(it.name)}</span><span>${it.score} 分 / ${it.time}s</span></li>`).join('');
-        }
-        function renderRank(){
-            const list = loadLB().slice(0, 20);
-            if(list.length===0){ rankList.innerHTML = '<li class="rank-item"><span>暂无数据</span><span>-</span></li>'; return; }
-            rankList.innerHTML = list.map((it,idx)=>`<li class="rank-item"><span>#${idx+1} ${escapeHtml(it.name)}</span><span>${it.score}分 · ${it.time}s</span></li>`).join('');
-        }
-        function escapeHtml(str){
-            return String(str||'').replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s]));
-        }
-
-        function showHome(){
-            homeOverlay.style.display = 'flex';
-            rankOverlay.style.display = 'none';
-            renderTop3();
-        }
-        function startGame(){
-            homeOverlay.style.display = 'none';
-            document.getElementById('gameOver').style.display = 'none';
-            restartGame();
-        }
-        function openRank(){ renderRank(); rankOverlay.style.display = 'flex'; }
-        function closeRank(){ rankOverlay.style.display = 'none'; }
-
-        btnStart.addEventListener('click', startGame);
-        btnRank.addEventListener('click', openRank);
-        btnCloseRank.addEventListener('click', closeRank);
-        if (btnShowRank) btnShowRank.addEventListener('click', openRank);
-        btnSubmitScore.addEventListener('click', ()=>{
-            const name = (document.getElementById('playerName').value || '').trim();
-            if(!/^.{2,12}$/.test(name)){
-                alert('请输入2-12个字符的昵称');
-                return;
-            }
-            localStorage.setItem('escape_last_name', name);
-            const time = Math.floor((Date.now() - gameState.startTime)/1000);
-            addScore(name, gameState.score, time);
-            alert('已提交上榜！');
-            renderRank();
-        });
-
-        // 页面可见性：后台暂停计时（不影响得分 fairness）
-        document.addEventListener('visibilitychange', ()=>{
-            if (document.hidden) hiddenAt = Date.now();
-            else if (hiddenAt) { gameState.startTime += (Date.now() - hiddenAt); hiddenAt = 0; }
-        });
-
-        // 默认显示首页
-        showHome();
+        
+        // 开始游戏
+        gameLoop();
     </script>
 </body>
 </html>

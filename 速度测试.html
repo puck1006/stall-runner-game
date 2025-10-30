@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>速度测试工具</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 600px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        color: #667eea;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .info {
+        background: #f0f4ff;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .info-item:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        font-weight: 600;
+        color: #555;
+      }
+
+      .value {
+        color: #667eea;
+        font-weight: 700;
+      }
+
+      .speed-control {
+        margin: 20px 0;
+      }
+
+      .speed-control label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+      }
+
+      .speed-control input[type="range"] {
+        width: 100%;
+        height: 8px;
+        border-radius: 5px;
+        background: #ddd;
+        outline: none;
+      }
+
+      .speed-control input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #667eea;
+        cursor: pointer;
+      }
+
+      .speed-control input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #667eea;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .btn:active {
+        transform: scale(0.95);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #f0f4ff;
+        color: #667eea;
+      }
+
+      .url-box {
+        background: #f9fafb;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 15px;
+        word-break: break-all;
+        font-family: monospace;
+        font-size: 14px;
+        color: #333;
+      }
+
+      .tip {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin-top: 15px;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #856404;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎮 游戏速度测试工具</h1>
+
+      <div class="info">
+        <div class="info-item">
+          <span class="label">屏幕宽度:</span>
+          <span class="value" id="screenWidth">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">屏幕高度:</span>
+          <span class="value" id="screenHeight">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">最短边:</span>
+          <span class="value" id="minDim">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">设备像素比:</span>
+          <span class="value" id="dpr">-</span>
+        </div>
+      </div>
+
+      <div class="speed-control">
+        <label for="speedK"
+          >速度倍率 (SPEED_K): <span id="speedKValue">1.0</span></label
+        >
+        <input
+          type="range"
+          id="speedK"
+          min="0.5"
+          max="3.0"
+          step="0.1"
+          value="1.0"
+        />
+      </div>
+
+      <div class="speed-control">
+        <label for="speedScreens"
+          >屏幕跨越速度 (SPEED_SCREENS):
+          <span id="speedScreensValue">1.8</span> 屏/秒</label
+        >
+        <input
+          type="range"
+          id="speedScreens"
+          min="1.0"
+          max="6.0"
+          step="0.1"
+          value="1.8"
+        />
+      </div>
+
+      <div class="info">
+        <div class="info-item">
+          <span class="label">计算速度:</span>
+          <span class="value" id="calcSpeed">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">虚拟摇杆最小速度:</span>
+          <span class="value" id="minJoySpeed">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">虚拟摇杆最大速度:</span>
+          <span class="value" id="maxJoySpeed">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">键盘速度:</span>
+          <span class="value" id="keySpeed">-</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="openGame()">
+          打开游戏测试
+        </button>
+        <button class="btn btn-secondary" onclick="copyURL()">复制链接</button>
+      </div>
+
+      <div class="url-box" id="gameURL">-</div>
+
+      <div class="tip">
+        💡
+        <strong>提示:</strong>
+        调整滑块后点击"打开游戏测试"按钮,会自动带上参数打开游戏。建议速度范围:
+        2.5-4.5 屏/秒
+      </div>
+    </div>
+
+    <script>
+      const baseURL = "./escape.html"; // 本地调试
+
+      function updateInfo() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const minDim = Math.min(width, height);
+        const dpr = window.devicePixelRatio || 1;
+
+        document.getElementById("screenWidth").textContent = width + " px";
+        document.getElementById("screenHeight").textContent = height + " px";
+        document.getElementById("minDim").textContent = minDim + " px";
+        document.getElementById("dpr").textContent = dpr.toFixed(2);
+
+        updateSpeed();
+      }
+
+      function updateSpeed() {
+        const speedK = parseFloat(document.getElementById("speedK").value);
+        const speedScreens = parseFloat(
+          document.getElementById("speedScreens").value
+        );
+        const minDim = Math.min(window.innerWidth, window.innerHeight);
+
+        document.getElementById("speedKValue").textContent = speedK.toFixed(1);
+        document.getElementById("speedScreensValue").textContent =
+          speedScreens.toFixed(1);
+
+        const baseSpeed = speedScreens * minDim * speedK;
+        const minJoySpeed = baseSpeed * 0.4;
+        const maxJoySpeed = baseSpeed * 1.0;
+
+        document.getElementById("calcSpeed").textContent =
+          baseSpeed.toFixed(0) + " px/s";
+        document.getElementById("minJoySpeed").textContent =
+          minJoySpeed.toFixed(0) + " px/s";
+        document.getElementById("maxJoySpeed").textContent =
+          maxJoySpeed.toFixed(0) + " px/s";
+        document.getElementById("keySpeed").textContent =
+          baseSpeed.toFixed(0) + " px/s";
+
+        updateURL();
+      }
+
+      function updateURL() {
+        const speedK = parseFloat(document.getElementById("speedK").value);
+        const speedScreens = parseFloat(
+          document.getElementById("speedScreens").value
+        );
+
+        let url = baseURL;
+        const params = [];
+
+        if (speedK !== 1.0) {
+          params.push(`speed=${speedK}`);
+        }
+
+        if (speedScreens !== 1.8) {
+          params.push(`spw=${speedScreens}`);
+        }
+
+        if (params.length > 0) {
+          url += "?" + params.join("&");
+        }
+
+        document.getElementById("gameURL").textContent = url;
+      }
+
+      function openGame() {
+        const url = document.getElementById("gameURL").textContent;
+        window.open(url, "_blank");
+      }
+
+      function copyURL() {
+        const url = document.getElementById("gameURL").textContent;
+        navigator.clipboard
+          .writeText(url)
+          .then(() => {
+            alert("链接已复制到剪贴板！");
+          })
+          .catch(() => {
+            alert("复制失败，请手动复制链接");
+          });
+      }
+
+      document.getElementById("speedK").addEventListener("input", updateSpeed);
+      document
+        .getElementById("speedScreens")
+        .addEventListener("input", updateSpeed);
+      window.addEventListener("resize", updateInfo);
+
+      updateInfo();
+    </script>
+  </body>
+</html>

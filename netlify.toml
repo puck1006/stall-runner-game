@@ -1,8 +1,0 @@
-[build]
-  publish = "netlify-deploy"
-
-[[redirects]]
-  from = "/"
-  to = "/escape.html"
-  status = 200
-

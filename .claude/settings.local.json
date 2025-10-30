@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(whereis:*)",
+      "Read(//usr/local/**)",
+      "Bash(brew list:*)",
+      "Bash(sudo rm:*)",
+      "Read(//Users/tom/**)",
+      "Bash(ngrok --version)",
+      "Read(//Applications/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
