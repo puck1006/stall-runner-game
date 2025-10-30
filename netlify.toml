@@ -1,6 +1,5 @@
 [build]
   publish = "netlify-deploy"
-  command = "echo 'No build needed'"
 
 [[redirects]]
   from = "/"
